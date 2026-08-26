@@ -1,4 +1,5 @@
 import {
+  Keypair,
   SorobanDataBuilder,
   xdr,
   Networks as StellarNetworks,
@@ -9,7 +10,11 @@ import { Api } from "@stellar/stellar-sdk/rpc";
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import { STELLAR_TESTNET_CAIP2 } from "../../src/constants";
 import { ExactStellarScheme } from "../../src/exact/client/scheme";
-import { gatherAuthEntrySignatureStatus, handleSimulationResult } from "../../src/shared";
+import {
+  gatherAuthEntrySignatureStatus,
+  getAddressCredentials,
+  handleSimulationResult,
+} from "../../src/shared";
 import { createEd25519Signer } from "../../src/signer";
 import * as stellarUtils from "../../src/utils";
 import type { PaymentRequirements } from "@x402/core/types";
@@ -89,6 +94,42 @@ describe("Stellar Shared Utilities", () => {
       } as Api.SimulateTransactionSuccessResponse;
 
       expect(() => handleSimulationResult(mockSuccessSimulation)).not.toThrow();
+    });
+  });
+
+  describe("getAddressCredentials", () => {
+    const addressCredentials = new xdr.SorobanAddressCredentials({
+      address: xdr.ScAddress.scAddressTypeAccount(
+        xdr.PublicKey.publicKeyTypeEd25519(Keypair.random().rawPublicKey()),
+      ),
+      nonce: new xdr.Int64(1),
+      signatureExpirationLedger: 100,
+      signature: xdr.ScVal.scvVoid(),
+    });
+
+    it("returns the credentials for the legacy V1 address arm", () => {
+      const credentials = xdr.SorobanCredentials.sorobanCredentialsAddress(addressCredentials);
+      expect(getAddressCredentials(credentials)).toBe(addressCredentials);
+    });
+
+    it("returns the credentials for the CAP-71 V2 address arm", () => {
+      const credentials = xdr.SorobanCredentials.sorobanCredentialsAddressV2(addressCredentials);
+      expect(getAddressCredentials(credentials)).toBe(addressCredentials);
+    });
+
+    it("returns undefined for source-account credentials", () => {
+      const credentials = xdr.SorobanCredentials.sorobanCredentialsSourceAccount();
+      expect(getAddressCredentials(credentials)).toBeUndefined();
+    });
+
+    it("returns undefined for delegated credentials", () => {
+      const credentials = xdr.SorobanCredentials.sorobanCredentialsAddressWithDelegates(
+        new xdr.SorobanAddressCredentialsWithDelegates({
+          addressCredentials,
+          delegates: [],
+        }),
+      );
+      expect(getAddressCredentials(credentials)).toBeUndefined();
     });
   });
 

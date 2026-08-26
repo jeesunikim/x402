@@ -622,6 +622,63 @@ describe("ExactStellarScheme#Verify (randomly using 1-2 facilitator signers)", (
             "invalid_exact_stellar_payload_unsupported_credential_type",
           );
         });
+
+        it("should accept CAP-71 V2 address credentials", async () => {
+          if (!baseSorobanData || !baseOperation.auth || baseOperation.auth.length === 0) {
+            throw new Error("Missing sorobanData or auth in test transaction");
+          }
+
+          // From Protocol 28, recording-mode simulation returns V2 address
+          // credentials by default; the facilitator must accept them alongside
+          // legacy V1. The signature's on-network validity is enforced by
+          // simulation, which is mocked here — this test covers the credential
+          // gate and signature-status gathering.
+          const originalAuth = baseOperation.auth[0];
+          const v2Auth = new xdr.SorobanAuthorizationEntry({
+            credentials: xdr.SorobanCredentials.sorobanCredentialsAddressV2(
+              originalAuth.credentials().address(),
+            ),
+            rootInvocation: originalAuth.rootInvocation(),
+          });
+
+          const modifiedOperation = Operation.invokeHostFunction({
+            ...baseOperation,
+            auth: [v2Auth],
+          });
+          const modifiedStellarPayload = buildStellarPayloadFromOp(modifiedOperation);
+
+          const result = await facilitator.verify(modifiedStellarPayload, validRequirements);
+          expect(result).toEqual(validVerifyResponse(CLIENT_PUBLIC));
+        });
+
+        it("should reject delegated (addressWithDelegates) credentials", async () => {
+          if (!baseSorobanData || !baseOperation.auth || baseOperation.auth.length === 0) {
+            throw new Error("Missing sorobanData or auth in test transaction");
+          }
+
+          const originalAuth = baseOperation.auth[0];
+          const delegatedAuth = new xdr.SorobanAuthorizationEntry({
+            credentials: xdr.SorobanCredentials.sorobanCredentialsAddressWithDelegates(
+              new xdr.SorobanAddressCredentialsWithDelegates({
+                addressCredentials: originalAuth.credentials().address(),
+                delegates: [],
+              }),
+            ),
+            rootInvocation: originalAuth.rootInvocation(),
+          });
+
+          const modifiedOperation = Operation.invokeHostFunction({
+            ...baseOperation,
+            auth: [delegatedAuth],
+          });
+          const modifiedStellarPayload = buildStellarPayloadFromOp(modifiedOperation);
+
+          const result = await facilitator.verify(modifiedStellarPayload, validRequirements);
+          expect(result.isValid).toBe(false);
+          expect(result.invalidReason).toBe(
+            "invalid_exact_stellar_payload_unsupported_credential_type",
+          );
+        });
       });
 
       describe("sub-invocation validation", () => {
