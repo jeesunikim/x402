@@ -503,8 +503,11 @@ describe.skipIf(missingEnvVars)("Stellar Integration Tests", () => {
       };
 
       const verifyResponse = await facilitatorScheme.verify(tamperedPayload, accepted);
-      console.log(`Mismatched-preimage verify result: ${verifyResponse.invalidReason}\n`);
       expect(verifyResponse.isValid).toBe(false);
+      // Pin the reason so this cannot pass for an unrelated failure (fee,
+      // expiration, malformed envelope): the network's enforce-mode simulation
+      // must be what rejects the mismatched signature.
+      expect(verifyResponse.invalidReason).toBe("invalid_exact_stellar_payload_simulation_failed");
     });
   });
 
