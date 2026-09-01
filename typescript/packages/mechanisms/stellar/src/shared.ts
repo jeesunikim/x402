@@ -28,10 +28,10 @@ export function handleSimulationResult(simulation?: Api.SimulateTransactionRespo
 /**
  * Returns the address credentials carried by a Soroban credential union, for
  * both the legacy V1 `sorobanCredentialsAddress` arm and the CAP-71 V2
- * `sorobanCredentialsAddressV2` arm — recording-mode simulation returns V2 by
- * default on networks running Protocol 28 or later. Both arms wrap the same
- * `SorobanAddressCredentials` structure. Returns `undefined` for every other
- * arm (source-account, delegated).
+ * `sorobanCredentialsAddressV2` arm, which networks accept from Protocol 28
+ * onward. Both arms wrap the same `SorobanAddressCredentials` structure and
+ * differ only in the preimage the signer commits to. Returns `undefined` for
+ * every other arm (source-account, delegated).
  *
  * @param credentials - The credential union from an auth entry
  * @returns The address credentials, or undefined for non-address arms
@@ -127,9 +127,9 @@ export function gatherAuthEntrySignatureStatus({
   const pendingSignature: string[] = [];
 
   for (const entry of invokeOp.auth ?? []) {
-    // Handle address-based credentials, both legacy V1 and CAP-71 V2 (the
-    // recording-mode default from Protocol 28 onward). Source-account
-    // credentials are skipped - these use the transaction source.
+    // Handle address-based credentials, both legacy V1 and CAP-71 V2 (accepted
+    // by the network from Protocol 28 onward). Source-account credentials are
+    // skipped - these use the transaction source.
     const addressCredentials = getAddressCredentials(entry.credentials());
     if (addressCredentials) {
       const address = Address.fromScAddress(addressCredentials.address()).toString();

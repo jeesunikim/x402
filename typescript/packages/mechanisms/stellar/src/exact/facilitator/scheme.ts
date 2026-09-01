@@ -743,8 +743,8 @@ export class ExactStellarScheme implements SchemeNetworkFacilitator {
 
     for (const auth of invokeOp.auth) {
       // Only address-based credentials are allowed: legacy V1 or CAP-71 V2,
-      // which recording-mode simulation returns by default from Protocol 28
-      // onward. Source-account and delegated credentials are rejected.
+      // which the network accepts from Protocol 28 onward. Source-account and
+      // delegated credentials are rejected.
       const addressCredentials = getAddressCredentials(auth.credentials());
       if (!addressCredentials) {
         return invalidVerifyResponse(
