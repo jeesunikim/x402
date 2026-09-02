@@ -321,12 +321,11 @@ describe.skipIf(missingEnvVars)("Stellar Integration Tests", () => {
     });
 
     beforeEach(async () => {
+      // Default spend controls reject the XLM test asset; these tests cover the
+      // scheme and facilitator, not spend controls (matches the suites above).
       client = new x402Client()
-        .register(STELLAR_TESTNET_CAIP2, new ExactStellarClient(clientSigner))
-        // The testnet XLM SAC is not a default asset, so opt into it explicitly
-        .setSpendControls({
-          allowedAssets: [{ network: STELLAR_TESTNET_CAIP2, asset: XLM_TESTNET_ASSET }],
-        });
+        .setSpendControls(false)
+        .register(STELLAR_TESTNET_CAIP2, new ExactStellarClient(clientSigner));
 
       facilitatorScheme = new ExactStellarFacilitator([facilitatorSigner]);
       const facilitator = new x402Facilitator().register(STELLAR_TESTNET_CAIP2, facilitatorScheme);
